@@ -1,0 +1,6 @@
+<launch>
+    <node name="mask_rcnn" pkg="mask_rcnn_ros" type="mask_rcnn_node" output="screen">
+        <remap from="~input" to="/kinectA/rgb/image_raw" />
+        <param name="~visualization" value="true" />
+    </node>
+</launch>

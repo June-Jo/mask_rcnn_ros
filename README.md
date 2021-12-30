@@ -6,10 +6,6 @@ The package contains ROS node of Mask R-CNN with topic-based ROS interface.
 
 Most of core algorithm code was based on [Mask R-CNN implementation by Matterport, Inc. ](https://github.com/matterport/Mask_RCNN)
 
-This is for Object detection which can detect several objects regardless of their classes.
-
-But it can not classify their classes. It just detects objects.
-
 ## Training
 
 This repository doesn't contain code for training Mask R-CNN network model.
@@ -17,11 +13,12 @@ If you want to train the model on your own class definition or dataset, try it o
 
 
 ## Requirements
-* ROS kinetic/Melodic
-* TensorFlow 1.14
-* Keras 2.1.13
+* ROS Indigo/kinetic
+* TensorFlow 1.3+
+* Keras 2.0.8+
 * Numpy, skimage, scipy, Pillow, cython, h5py
-* I only test code on Python3.X.
+* I only test code on Python 2.7, it may work on Python3.X.
+* see more dependency and version details in [requirements.txt](https://github.com/qixuxiang/mask_rcnn_ros/blob/master/requirements.txt)
 
 ## ROS Interfaces
  
@@ -64,8 +61,19 @@ If you want to train the model on your own class definition or dataset, try it o
 ## Getting Started
 
 1. Clone this repository to your catkin workspace, build workspace and source devel environment 
-2. Download the [trained model](https://koreaoffice-my.sharepoint.com/:u:/g/personal/jhj0630_korea_edu/EUOUPnsE1tVEp_mstw8ZFI8BrbYidzhQr8RltE67Bp4I6w?e=rNsTW8) and locate it at proper path.
-3. Run mask_rcnn node
+```
+$ cd ~/.catkin_ws/src
+$ git clone https://github.com/qixuxiang/mask_rcnn_ros.git
+$ cd mask_rcnn_ros
+$ python2 -m pip install --upgrade pip
+$ python2 -m pip install -r requirements.txt
+$ cd ../..
+$ catkin_make
+$ source devel/setup.bash
+
+```
+
+2. Run mask_rcnn node
       ~~~bash
       $ rosrun mask_rcnn_ros mask_rcnn_node
       ~~~
@@ -80,4 +88,16 @@ $ ./scripts/download_freiburg3_rgbd_example_bag.sh
 $ roslaunch mask_rcnn_ros freiburg3_rgbd_example.launch
 ~~~
 
-![example1](doc/example.png)
+Then RViz window will appear and show result like following:
+
+![example1](doc/mask_r-cnn_1.png)
+
+![example2](doc/mask_r-cnn_2.png)
+
+## Other issue
+
+* If you have installed Anaconda|Python, Please delete or comment `export PATH=/home/soft/conda3/bin:$PATH` in you `~/.bashrc` file.
+
+* When you run the code, please wait for a moment for the result because there will be delay when play bag file and process the images.
+
+* Welcome to submit any issue if you have problems, and add your software system information details, such as Ubuntu 16/14,ROS Indigo/Kinetic, Python2/Python3, Tensorflow 1.4,etc..

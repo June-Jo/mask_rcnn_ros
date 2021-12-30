@@ -1,10 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+import sys
+# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 import os
 import threading
 import numpy as np
 
 import cv2
 from cv_bridge import CvBridge
+import ros_numpy
+
 import rospy
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import RegionOfInterest
@@ -15,41 +19,50 @@ import model as modellib
 import visualize
 from mask_rcnn_ros.msg import Result
 
-
 # Local path to trained weights file
 ROS_HOME = os.environ.get('ROS_HOME', os.path.join(os.environ['HOME'], '.ros'))
-COCO_MODEL_PATH = os.path.join(ROS_HOME, 'mask_rcnn_coco.h5')
+#COCO_MODEL_PATH = os.path.join(ROS_HOME, 'mask_rcnn_coco.h5')
+#COCO_MODEL_PATH = '/home/irobot/catkin_ws/src/mask_rcnn_ros/weight/mask_rcnn_object_detector.h5'
+COCO_MODEL_PATH = '/home/irobot/catkin_ws/src/mask_rcnn_ros/weight/mask_rcnn_irl_0499_m.h5'
 
 # COCO Class names
 # Index of the class in the list is its ID. For example, to get ID of
 # the teddy bear class, use: CLASS_NAMES.index('teddy bear')
-CLASS_NAMES = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
-               'bus', 'train', 'truck', 'boat', 'traffic light',
-               'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird',
-               'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear',
-               'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie',
-               'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-               'kite', 'baseball bat', 'baseball glove', 'skateboard',
-               'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup',
-               'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-               'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
-               'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed',
-               'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote',
-               'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
-               'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
-               'teddy bear', 'hair drier', 'toothbrush']
+#CLASS_NAMES = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
+#               'bus', 'train', 'truck', 'boat', 'traffic light',
+#               'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird',
+#               'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear',
+#               'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie',
+#               'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+#               'kite', 'baseball bat', 'baseball glove', 'skateboard',
+#               'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup',
+#               'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+#               'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
+#               'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed',
+#               'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote',
+#               'keyboard', 'cell phone', 'microwave', 'oven', 'toaster',
+#               'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors',
+#               'teddy bear', 'hair drier', 'toothbrush']
 
+CLASS_NAMES = ['BG', 'object']
+
+#CLASS_NAMES = ['BG', 'black_tray', 'lettuce_box', 'knife', 'cutting_board', 'kimchi_box', 'sliver_tray',
+#                'green_banana', 'green_lemon', 'green_hexa', 'green_carrot',
+#                'red_banana', 'red_lemon', 'red_hexa', 'red_carrot',
+#                'turquoise_banana', 'turquoise_lemon', 'turquoise_hexa', 'turquoise_carrot',
+#                'purple_banana', 'purple_lemon', 'purple_hexa', 'purple_carrot',
+#                'cutting_board_handle']
 
 class InferenceConfig(coco.CocoConfig):
     # Set batch size to 1 since we'll be running inference on
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
-
+    NUM_CLASSES = 1 + 1
 
 class MaskRCNNNode(object):
     def __init__(self):
-        self._cv_bridge = CvBridge()
+#        self._cv_bridge = CvBridge()
 
         config = InferenceConfig()
         config.display()
@@ -62,8 +75,8 @@ class MaskRCNNNode(object):
         # Load weights trained on MS-COCO
         model_path = rospy.get_param('~model_path', COCO_MODEL_PATH)
         # Download COCO trained weights from Releases if needed
-        if model_path == COCO_MODEL_PATH and not os.path.exists(COCO_MODEL_PATH):
-            utils.download_trained_weights(COCO_MODEL_PATH)
+#        if model_path == COCO_MODEL_PATH and not os.path.exists(COCO_MODEL_PATH):
+#            utils.download_trained_weights(COCO_MODEL_PATH)
 
         self._model.load_weights(model_path, by_name=True)
 
@@ -93,10 +106,13 @@ class MaskRCNNNode(object):
                 continue
 
             if msg is not None:
-                np_image = self._cv_bridge.imgmsg_to_cv2(msg, 'bgr8')
+#                np_image = self._cv_bridge.imgmsg_to_cv2(msg, 'bgr8')
+                np_image = ros_numpy.numpify(msg)
+                np_image = np_image[:,:,:3]
 
                 # Run detection
                 results = self._model.detect([np_image], verbose=0)
+                print(results)
                 result = results[0]
                 result_msg = self._build_result_msg(msg, result)
                 self._result_pub.publish(result_msg)
@@ -104,7 +120,8 @@ class MaskRCNNNode(object):
                 # Visualize results
                 if self._visualization:
                     cv_result = self._visualize_cv(result, np_image)
-                    image_msg = self._cv_bridge.cv2_to_imgmsg(cv_result, 'bgr8')
+#                    image_msg = self._cv_bridge.cv2_to_imgmsg(cv_result, 'bgr8')
+                    image_msg = ros_numpy.msgify(Image, cv_result, encoding='bgr8')
                     vis_pub.publish(image_msg)
 
             rate.sleep()
@@ -157,6 +174,7 @@ class MaskRCNNNode(object):
 
         _, _, w, h = fig.bbox.bounds
         result = result.reshape((int(h), int(w), 3))
+
         return result
 
     def _visualize_cv(self, result, image):
